@@ -1,0 +1,2 @@
+{"timestamp": "2026-11-04T09:10:00+00:00", "source_ip": "10.0.0.15", "user": "admin", "action": "config_change", "severity": "MEDIUM"}
+{"timestamp": "2026-11-04T09:15:00+00:00", "source_ip": "192.168.2.50", "user": "guest", "action": "failed_login", "severity": "LOW"}

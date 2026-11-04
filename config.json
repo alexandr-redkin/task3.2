@@ -1,0 +1,12 @@
+{
+  "brute_force": {
+    "threshold": 3,
+    "window_seconds": 60
+  },
+  "off_hours_login": {
+    "start_hour": 8,
+    "end_hour": 20
+  },
+  "webhook_url": "https://webhook.site/example-token",
+  "logs_dir": "./data/logs"
+}

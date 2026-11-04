@@ -1,0 +1,10 @@
+cybersecurity-toolkit/
+├── C1/  (c1_1_parser.py ...)
+├── C2/
+├── minisiem/rules/
+├── data/samples/   ← образцы для упражнений C1
+├── data/logs/      ← журналы для capstone
+├── reports/
+├── tests/
+├── pytest.ini
+└── requirements.txt

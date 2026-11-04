@@ -1,0 +1,4 @@
+2026-11-04T08:00:00+00:00;192.168.1.100;root;failed_login;HIGH
+2026-11-04T08:00:15+00:00;192.168.1.100;root;failed_login;HIGH
+2026-11-04T08:00:30+00:00;192.168.1.100;root;failed_login;HIGH
+2026-11-04T08:01:00+00:00;192.168.1.100;root;successful_login;LOW
