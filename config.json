@@ -1,12 +1,17 @@
 {
-  "brute_force": {
-    "threshold": 3,
-    "window_seconds": 60
-  },
-  "off_hours_login": {
-    "start_hour": 8,
-    "end_hour": 20
-  },
-  "webhook_url": "https://webhook.site/example-token",
-  "logs_dir": "./data/logs"
+  "sources": [
+    {
+      "name": "ssh_auth",
+      "path": "data/logs/auth.ssh",
+      "format": "ssh"
+    },
+    {
+      "name": "json_events",
+      "path": "data/logs/events.json",
+      "format": "json"
+    }
+  ],
+  "brute_force_threshold": 3,
+  "watermark_file": "watermark.json",
+  "alerts_output": "alerts_output.jsonl"
 }

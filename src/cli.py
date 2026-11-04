@@ -1,92 +1,108 @@
+import argparse
 import json
 import os
-import sys
-import argparse
-
 from src.parsers import get_parser_for_source
 from src.rules import DetectionEngine, BruteForcerRule, OffHoursLoginRule
 from src.sinks import ConsoleSink, JsonLineSink, MultiSink
-from src.notifier_lsp import NotifierLSP
 
-def load_config(config_path):
-    with open(config_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-def load_watermark(watermark_path):
-    if os.path.exists(watermark_path):
-        with open(watermark_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+def load_watermark(path="watermark.json"):
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
     return {}
 
-def save_watermark(watermark_path, watermark):
-    with open(watermark_path, 'w', encoding='utf-8') as f:
-        json.dump(watermark, f, indent=2)
+def save_watermark(watermark, path="watermark.json"):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(watermark, f, indent=4)
 
 def main():
-    parser = argparse.ArgumentParser(description="Mini-SIEM Security Framework CLI")
-    parser.add_argument("--config", default="config.json", help="Path to configuration file")
+    parser = argparse.ArgumentParser(description="Mini-SIEM CLI Orchestrator")
+    parser.add_argument("--config", default="config.json", help="Path to config file")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Show detailed execution steps and affected data")
     args = parser.parse_args()
 
-    if not os.path.exists(args.config):
-        print(f"Error: Config file not found at {args.config}")
-        sys.exit(1)
+    if args.verbose:
+        print("[VERBOSE] Загрузка конфигурации из файла:", args.config)
 
-    config = load_config(args.config)
-    watermark_path = config.get("watermark_file", "watermark.json")
-    watermarks = load_watermark(watermark_path)
+    with open(args.config, "r", encoding="utf-8") as f:
+        config = json.load(f)
 
-    # Инициализация движка правил обнаружения с передачей правил в конструктор
-    engine = DetectionEngine([
-        BruteForcerRule(threshold=config.get("brute_force_threshold", 3)),
-        OffHoursLoginRule()
-    ])
-
-    # Настройка приемников (sinks) для алертов
-    sinks_list = [ConsoleSink()]
-    alert_output = config.get("alert_output", "alerts_output.jsonl")
-    if alert_output:
-        sinks_list.append(JsonLineSink(alert_output))
+    watermark = load_watermark(config.get("watermark_file", "watermark.json"))
     
-    if config.get("lsp_enabled", True):
-        sinks_list.append(NotifierLSP())
+    # Инициализация приемников алертов
+    sinks = [ConsoleSink()]
+    alerts_file = config.get("alerts_output", "alerts_output.jsonl")
+    sinks.append(JsonLineSink(alerts_file))
+    sink = MultiSink(sinks)
 
-    sink = MultiSink(sinks_list)
+    # Инициализация движка правил
+    threshold = config.get("brute_force_threshold", 3)
+    rules = [
+        BruteForcerRule(threshold=threshold),
+        OffHoursLoginRule()
+    ]
+    engine = DetectionEngine(rules)
 
-    # Обработка источников логов из конфигурации
+    all_events = []
     sources = config.get("sources", [])
-    for src_conf in sources:
-        file_path = src_conf.get("path")
-        source_type = src_conf.get("type")
 
-        if not file_path or not os.path.exists(file_path):
-            print(f"Warning: Log file not found: {file_path}")
+    if args.verbose:
+        print(f"[VERBOSE] Найдено источников логов в конфигурации: {len(sources)}")
+
+    # Шаг 1: Чтение и парсинг логов
+    for src in sources:
+        name = src.get("name")
+        path = src.get("path")
+        fmt = src.get("format")
+
+        if args.verbose:
+            print(f"\n[PARSING] Обработка источника: '{name}' (формат: {fmt}, путь: {path})")
+
+        parser_obj = get_parser_for_source(fmt)
+        last_pos = watermark.get(path, 0)
+
+        if not os.path.exists(path):
+            if args.verbose:
+                print(f"[WARNING] Файл не найден: {path}")
             continue
 
-        last_pos = watermarks.get(file_path, 0)
-        log_parser = get_parser_for_source(source_type)
-
-        if not log_parser:
-            print(f"Warning: No parser found for type {source_type}")
-            continue
-
-        events = []
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(path, "r", encoding="utf-8") as f:
             f.seek(last_pos)
-            for line in f:
-                line = line.strip()
-                if line:
-                    event = log_parser.parse(line)
-                    if event:
-                        events.append(event)
-            watermarks[file_path] = f.tell()
+            lines = f.readlines()
+            new_pos = f.tell()
 
-        # Анализ событий и отправка алертов
-        alerts = engine.analyze(events)
-        for alert in alerts:
-            sink.send(alert)
+        watermark[path] = new_pos
 
-    # Сохранение прогресса чтения логов
-    save_watermark(watermark_path, watermarks)
+        if args.verbose:
+            print(f"[INFO] Прочитано новых строк: {len(lines)} (смещение байт: {last_pos} -> {new_pos})")
+
+        for idx, line in enumerate(lines, 1):
+            line_str = line.strip()
+            if not line_str:
+                continue
+            event = parser_obj.parse_line(line_str)
+            all_events.append(event)
+            if args.verbose:
+                print(f"  -> [Событие #{idx}] Время: {event.timestamp}, IP: {event.source_ip}, Пользователь: {event.user}, Действие: {event.action}, Угроза: {event.severity.name}")
+
+    save_watermark(watermark, config.get("watermark_file", "watermark.json"))
+
+    if args.verbose:
+        print(f"\n[ANALYSIS] Всего нормализовано событий для анализа: {len(all_events)}")
+        print("[ENGINE] Запуск правил детекции угроз (engine.run)...")
+
+    # Шаг 2: Анализ правил через корректный метод run()
+    alerts = engine.run(all_events)
+
+    if args.verbose:
+        print(f"[ALERTS] Сгенерировано алертов безопасности: {len(alerts)}")
+
+    for alert in alerts:
+        sink.send(alert)
+
     print("SIEM processing completed successfully.")
 
 if __name__ == "__main__":
