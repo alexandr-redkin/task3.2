@@ -1,40 +1,35 @@
-from typing import Protocol, runtime_checkable
 import json
-import logging
-from src.rules import Alert
 
-logger = logging.getLogger(__name__)
+class AlertSink:
+    def send(self, alert):
+        raise NotImplementedError
 
-@runtime_checkable
-class AlertSink(Protocol):
-    def send(self, alert: Alert) -> None:
-        ...
+class ConsoleSink(AlertSink):
+    def send(self, alert):
+        print(f"[ALERT] [{alert.severity.value}] {alert.rule_name}: {alert.message} (Source: {alert.source})")
 
-class ConsoleSink:
-    def send(self, alert: Alert) -> None:
-        print(f"[ALERT] [{alert.severity.name}] {alert.rule_name}: {alert.description} at {alert.timestamp}")
-
-class JsonLinesSink:
-    def __init__(self, filepath: str):
+class JsonLineSink(AlertSink):
+    def __init__(self, filepath):
         self.filepath = filepath
 
-    def send(self, alert: Alert) -> None:
+    def send(self, alert):
         data = {
             "rule_name": alert.rule_name,
-            "severity": alert.severity.name,
-            "description": alert.description,
-            "timestamp": alert.timestamp.isoformat()
+            "severity": alert.severity.value,
+            "message": alert.message,
+            "source": alert.source,
+            "timestamp": getattr(alert, "timestamp", None)
         }
-        with open(self.filepath, "a", encoding="utf-8") as f:
-            f.write(json.dumps(data) + "\n")
+        with open(self.filepath, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(data, ensure_ascii=False) + "\n")
 
-class MultiSink:
-    def __init__(self, sinks: list[AlertSink]):
+# Алиас на случай, если где-то используется вариант с буквой 's'
+JsonLinesSink = JsonLineSink
+
+class MultiSink(AlertSink):
+    def __init__(self, sinks):
         self.sinks = sinks
 
-    def send(self, alert: Alert) -> None:
+    def send(self, alert):
         for sink in self.sinks:
-            try:
-                sink.send(alert)
-            except Exception as e:
-                logger.error(f"Ошибка в синк-обработчике: {e}")
+            sink.send(alert)

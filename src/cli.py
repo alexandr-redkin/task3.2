@@ -35,10 +35,11 @@ def main():
     watermark_path = config.get("watermark_file", "watermark.json")
     watermarks = load_watermark(watermark_path)
 
-    # Инициализация движка правил обнаружения
-    engine = DetectionEngine()
-    engine.add_rule(BruteForcerRule(threshold=config.get("brute_force_threshold", 3)))
-    engine.add_rule(OffHoursLoginRule())
+    # Инициализация движка правил обнаружения с передачей правил в конструктор
+    engine = DetectionEngine([
+        BruteForcerRule(threshold=config.get("brute_force_threshold", 3)),
+        OffHoursLoginRule()
+    ])
 
     # Настройка приемников (sinks) для алертов
     sinks_list = [ConsoleSink()]
