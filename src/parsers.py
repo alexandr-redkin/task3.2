@@ -44,8 +44,9 @@ class AuthLogParser(LogParser):
             user = "unknown"
             action = "unknown"
             sev = Severity.INFO
+            # Заменили WARNING на HIGH для угроз брутфорса
             if "Failed password" in line or "Invalid user" in line or "failed_login" in line.lower():
-                sev = Severity.WARNING
+                sev = Severity.HIGH
 
         return SecurityEvent(
             timestamp=ts,
@@ -105,6 +106,7 @@ class JsonLogParser(LogParser):
 class JsonLineParser(JsonLogParser):
     pass
 
+# Реестр парсеров объявлен после описания всех классов
 PARSERS_REGISTRY = {
     "ssh": SshAuthParser(),
     "auth": SshAuthParser(),

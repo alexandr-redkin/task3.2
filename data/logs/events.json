@@ -1,2 +1,4 @@
 {"timestamp": "2026-11-04T09:10:00+00:00", "source_ip": "10.0.0.15", "user": "admin", "action": "config_change", "severity": "MEDIUM"}
 {"timestamp": "2026-11-04T09:15:00+00:00", "source_ip": "192.168.2.50", "user": "guest", "action": "failed_login", "severity": "LOW"}
+{"timestamp": "2026-11-04T12:00:15Z", "source_ip": "192.168.2.50", "user": "admin", "action": "failed_login", "severity": "HIGH"}
+{"timestamp": "2026-11-04T12:25:00Z", "source_ip": "203.0.113.99", "user": "system", "action": "data_exfiltration", "severity": "CRITICAL"}

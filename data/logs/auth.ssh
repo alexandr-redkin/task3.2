@@ -2,3 +2,14 @@
 2026-11-04T08:00:15+00:00;192.168.1.100;root;failed_login;HIGH
 2026-11-04T08:00:30+00:00;192.168.1.100;root;failed_login;HIGH
 2026-11-04T08:01:00+00:00;192.168.1.100;root;successful_login;LOW
+2026-11-04T12:20:00Z;10.99.0.1;root;root_compromise;CRITICAL
+2026-11-04T12:21:15Z;192.168.100.66;admin;ransomware_execution;CRITICAL
+
+2026-11-04T08:00:00+00:00;192.168.1.50;admin;failed_login;HIGH
+2026-11-04T08:00:05+00:00;192.168.1.50;admin;failed_login;HIGH
+2026-11-04T08:00:10+00:00;192.168.1.50;admin;failed_login;HIGH
+2026-11-04T08:00:15+00:00;192.168.1.50;admin;failed_login;CRITICAL
+
+Nov  4 12:00:01 server sshd[1234]: Failed password for root from 192.168.1.100 port 22 ssh2
+Nov  4 12:00:05 server sshd[1235]: Failed password for root from 192.168.1.100 port 22 ssh2
+Nov  4 12:00:10 server sshd[1236]: Failed password for root from 192.168.1.100 port 22 ssh2
